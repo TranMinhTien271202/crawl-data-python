@@ -24,6 +24,12 @@ def kill_chrome():
             proc.kill()
 
 def setup_driver():
+    headers_list = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36",
+    ]
+    user_agent = random.choice(headers_list)
     options = webdriver.ChromeOptions()
     options.add_argument("--disable-extensions")
     options.add_argument("--disable-popup-blocking")
@@ -32,7 +38,8 @@ def setup_driver():
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-translate")
     options.add_argument("--disable-features=TranslateUI")
-    options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+    # options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+    options.add_argument(f"--user-agent={user_agent}")
     options.add_argument("--incognito")
     options.add_argument("--window-size=1920x1080")
     options.add_argument("--disable-images")
@@ -123,8 +130,7 @@ def get_info_google_map(name, address, tax_code):
         website = ''
         phone = ''
         print(query)
-        time.sleep(1)  # Chờ một chút để trang web tải đầy đủ
-        
+        time.sleep(2)  # Chờ một chút để trang web tải đầy đủ
         if "place/" in search_result_url:
             WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.CLASS_NAME, "lMbq3e"))
@@ -194,6 +200,7 @@ def get_info_google_map(name, address, tax_code):
                             print("No Images")
             else:
                 print("Incorrect tax code")
+                return None
         else:
             print("Không tìm thấy công ty")
             return None
@@ -350,6 +357,7 @@ def get_communes(district, slug_district, headers_list):  # xã
                 )
             post_to_php(communes, "location")
             for commune in communes:
+                time.sleep(1)
                 get_data_location(commune["url"], commune["slug"], headers_list)
             return communes
         else:
@@ -409,11 +417,35 @@ def get_location_city(base_url, data, headers_list):  # tinh
             }
         )
     post_to_php(locations, "location")
+    # get_data_location('https://masothue.com/tra-cuu-ma-so-thue-theo-tinh/bac-ninh-170', 'bac-ninh-170', headers_list)
+    # get_districts('https://masothue.com/tra-cuu-ma-so-thue-theo-tinh/bac-ninh-170', 'bac-ninh-170', headers_list)
+    # get_data_location('https://masothue.com/tra-cuu-ma-so-thue-theo-tinh/thanh-hoa-4', 'thanh-hoa-4', headers_list)
+    # get_districts('https://masothue.com/tra-cuu-ma-so-thue-theo-tinh/thanh-hoa-4', 'thanh-hoa-4', headers_list)
     for location in locations:
         time.sleep(1)
         get_data_location(location["url"], location["slug"], headers_list)
         get_districts(location["url"], location["slug"], headers_list)
+        # get_data_location('https://masothue.com/tra-cuu-ma-so-thue-theo-tinh/quang-ninh-142', 'quang-ninh-142', headers_list)
+        # get_districts('https://masothue.com/tra-cuu-ma-so-thue-theo-tinh/quang-ninh-142', 'quang-ninh-142', headers_list)
     return locations
+
+
+
+# Define a function to get a proxy from the list
+def get_proxy():
+    proxies = [
+        "gwdifbir:0vqtxuh0t8fe@38.154.227.167:5868",
+        "gwdifbir:0vqtxuh0t8fe@185.199.229.156:7492",
+        "gwdifbir:0vqtxuh0t8fe@185.199.228.220:7300",
+        "gwdifbir:0vqtxuh0t8fe@185.199.231.45:8382",
+        "gwdifbir:0vqtxuh0t8fe@188.74.210.207:6286",
+        "gwdifbir:0vqtxuh0t8fe@188.74.183.10:8279",
+        "gwdifbir:0vqtxuh0t8fe@188.74.210.21:6100",
+        "gwdifbir:0vqtxuh0t8fe@45.155.68.129:8133",
+        "gwdifbir:0vqtxuh0t8fe@154.95.36.199:6893",
+        "gwdifbir:0vqtxuh0t8fe@45.94.47.66:8110",
+    ]
+    return random.choice(proxies)
 
 def main():
     base_url = "https://masothue.com/"
@@ -425,7 +457,18 @@ def main():
     headers = {
         "User-Agent": random.choice(headers_list),
     }
-    res = requests.get(base_url, headers=headers)
+    proxy = get_proxy()
+    proxy_parts = proxy.split('@')
+    if len(proxy_parts) == 2:
+        proxy_url = f"http://{proxy_parts[0]}@{proxy_parts[1]}"
+    else:
+        proxy_url = f"http://{proxy}"
+    
+    proxy_dict = {
+        "http": proxy_url,
+        "https": proxy_url
+    }
+    res = requests.get(base_url, headers=headers, proxies=proxy_dict)
     soup = BeautifulSoup(res.text, "html.parser")
     province_data = soup.find_all(class_="cat-item col-xs-6 col-md-12")
     get_location_city(base_url, province_data, headers_list)
